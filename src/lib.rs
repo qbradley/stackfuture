@@ -90,7 +90,7 @@ pub struct StackFuture<'a, T, const STACK_SIZE: usize> {
     drop_fn: fn(this: &mut Self),
     /// StackFuture can be used similarly to a `dyn Future`. We keep a PhantomData
     /// here so the type system knows this.
-    _phantom: PhantomData<dyn Future<Output = T> + Send + 'a>,
+    _phantom: PhantomData<dyn Future<Output = T> + 'a>,
 }
 
 impl<'a, T, const STACK_SIZE: usize> StackFuture<'a, T, { STACK_SIZE }> {
@@ -134,13 +134,13 @@ impl<'a, T, const STACK_SIZE: usize> StackFuture<'a, T, { STACK_SIZE }> {
     /// ```
     pub fn from<F>(future: F) -> Self
     where
-        F: Future<Output = T> + Send + 'a, // the bounds here should match those in the _phantom field
+        F: Future<Output = T> + 'a, // the bounds here should match those in the _phantom field
     {
         // Ideally we would provide this as:
         //
         //     impl<'a, F, const STACK_SIZE: usize> From<F> for  StackFuture<'a, F::Output, { STACK_SIZE }>
         //     where
-        //         F: Future + Send + 'a
+        //         F: Future + 'a
         //
         // However, libcore provides a blanket `impl<T> From<T> for T`, and since `StackFuture: Future`,
         // both impls end up being applicable to do `From<StackFuture> for StackFuture`.
@@ -162,7 +162,7 @@ impl<'a, T, const STACK_SIZE: usize> StackFuture<'a, T, { STACK_SIZE }> {
     /// If we cannot satisfy the alignment requirements for `F`, this function will panic.
     pub fn try_from<F>(future: F) -> Result<Self, IntoStackFutureError<F>>
     where
-        F: Future<Output = T> + Send + 'a, // the bounds here should match those in the _phantom field
+        F: Future<Output = T> + 'a, // the bounds here should match those in the _phantom field
     {
         if Self::has_space_for_val(&future) && Self::has_alignment_for_val(&future) {
             let mut result = StackFuture {
@@ -204,7 +204,7 @@ impl<'a, T, const STACK_SIZE: usize> StackFuture<'a, T, { STACK_SIZE }> {
     #[cfg(feature = "alloc")]
     pub fn from_or_box<F>(future: F) -> Self
     where
-        F: Future<Output = T> + Send + 'a, // the bounds here should match those in the _phantom field
+        F: Future<Output = T> + 'a, // the bounds here should match those in the _phantom field
     {
         Self::try_from(future).unwrap_or_else(|err| Self::from(Box::pin(err.into_inner())))
     }
